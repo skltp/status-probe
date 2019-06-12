@@ -3,7 +3,7 @@ package se.skltp.components.statusprobe.config;
 import lombok.Data;
 
 @Data
-public class Services {
+public class Service {
     private String name;
     private String url;
     private Integer connectTimeout;

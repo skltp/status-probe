@@ -14,14 +14,14 @@ import java.util.*;
 @Slf4j
 @Configuration
 public class ServicesConfigImpl implements ServicesConfig {
-    private Map<String, Services> services = new HashMap();
+    private Map<String, Service> services = new HashMap();
 
     public ServicesConfigImpl(@Value("${services.file}") String servicesFile, @Value("${socket.timeout.ms}") Integer defaultSocketTimeout, @Value("${connection.timeout.ms}") Integer defaultConnectionTimeout) {
         try {
             ObjectMapper objectMapper = new ObjectMapper();
-            List<Services> servicesList = objectMapper.readValue(new File(servicesFile), new TypeReference<List<Services>>(){});
-            log.info("############### Services för status check: #########################");
-            for (Services service : servicesList) {
+            List<Service> servicesList = objectMapper.readValue(new File(servicesFile), new TypeReference<List<Service>>(){});
+            log.info("############### Service för status check: #########################");
+            for (Service service : servicesList) {
                 if (service.getConnectTimeout() == null) {
                     service.setConnectTimeout(defaultConnectionTimeout);
                 }

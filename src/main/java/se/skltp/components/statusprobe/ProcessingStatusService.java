@@ -6,7 +6,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 import se.skltp.components.statusprobe.config.ServicesConfig;
-import se.skltp.components.statusprobe.config.ServicesConfigImpl;
 import org.apache.commons.httpclient.*;
 import org.apache.commons.httpclient.methods.*;
 
@@ -38,9 +37,8 @@ public class ProcessingStatusService {
         Set<String> services = servicesConfig.getServices();
         for (String service : services) {
             ProcessingStatus processingStatus = generateProcessingStatus();
-            fillServiceConfiguration(processingStatus, service);
-
-
+            fillServiceConfiguration(service, processingStatus);
+            checkServiceStatus(service, processingStatus);
             response.add(processingStatus);
         }
 
@@ -49,15 +47,16 @@ public class ProcessingStatusService {
 
     @GetMapping("/probe/{service}")
     @ResponseBody
-    ProcessingStatus getStatusOnName(String service) {
+    ProcessingStatus getStatusOnName(@PathVariable String service) {
         probeStatus.updateStatus();
 
-        if (!probeStatus.isProbeAvailable()) {
-            return generateProcessingStatus();
-        }
         ProcessingStatus processingStatus = generateProcessingStatus();
-        fillServiceConfiguration(processingStatus, service);
+        if (!probeStatus.isProbeAvailable()) {
+            return processingStatus;
+        }
 
+        fillServiceConfiguration(service, processingStatus);
+        checkServiceStatus(service, processingStatus);
         return processingStatus;
     }
 
@@ -69,7 +68,7 @@ public class ProcessingStatusService {
         return processingStatus;
     }
 
-    private void fillServiceConfiguration(ProcessingStatus processingStatus, String name){
+    private void fillServiceConfiguration(String name, ProcessingStatus processingStatus) {
         processingStatus.setName(name);
         processingStatus.setConnecttimeout(Integer.toString(servicesConfig.getConnectTimeout(name)));
         processingStatus.setResponsetimeout(Integer.toString(servicesConfig.getSocketTimeout(name)));
@@ -77,43 +76,44 @@ public class ProcessingStatusService {
     }
 
 
-    //Do HTTP Post on the selected resource
-    void doPost(ProcessingStatus serviceToProcess, String name){
+    //Do HTTP Get on the selected resource
+    private void checkServiceStatus(String name, ProcessingStatus serviceToProcess) {
         HttpClient client = new HttpClient();
         client.getHttpConnectionManager().getParams().setConnectionTimeout(servicesConfig.getConnectTimeout(name));
         client.getHttpConnectionManager().getParams().setSoTimeout(servicesConfig.getSocketTimeout(name));
 
-        log.debug("Connection timeout used for resource " + serviceToProcess.name + ": " + client.getHttpConnectionManager().getParams().getConnectionTimeout());
-        log.debug("Response timeout used for resource " + serviceToProcess.name + ": " + client.getHttpConnectionManager().getParams().getSoTimeout());
+        log.debug("Connection timeout used for resource " + serviceToProcess.getName() + ": " + client.getHttpConnectionManager().getParams().getConnectionTimeout());
+        log.debug("Response timeout used for resource " + serviceToProcess.getName() + ": " + client.getHttpConnectionManager().getParams().getSoTimeout());
 
-        GetMethod method = new GetMethod(serviceToProcess.url);
-        method.setRequestHeader("Connection","close");
+        GetMethod method = new GetMethod(servicesConfig.getUrl(name));
+        method.setRequestHeader("Connection", "close");
 
         try {
             int status = client.executeMethod(method);
 
-            log.info("Resource: $serviceToProcess.name, HTTP status code: ${status}, URL: $serviceToProcess.url");
+            log.info("Resource: {}, HTTP status code: {}, URL: {}", name, status, servicesConfig.getUrl(name));
 
-            if(status == HttpStatus.OK.value()){
-                serviceToProcess.serviceAvailable = true;
-            }else{
-                serviceToProcess.serviceAvailable = false;
+            if (status == HttpStatus.OK.value()) {
+                serviceToProcess.setServiceAvailable(true);
+            } else {
+                serviceToProcess.setServiceAvailable(false);
             }
 
-            serviceToProcess.serviceMessage = method.getResponseBodyAsString();
+            serviceToProcess.setServiceMessage(method.getResponseBodyAsString());
             //todo validateResponse
 
             method.releaseConnection();
         } catch (Exception e) {
-            log.error ("Exception: " + e.getMessage() + " occured. Resource: " + serviceToProcess.name + ", URL " + serviceToProcess.url);
-            log.error ("Exception: $e");
+            log.error("Exception: " + e.getMessage() + " occured. Resource: " + serviceToProcess.getName() + ", URL " + serviceToProcess.getUrl());
+            log.error("Exception: $e");
 
-            serviceToProcess.serviceAvailable = false;
-            serviceToProcess.serviceMessage = e.getMessage();
+            serviceToProcess.setServiceAvailable(false);
+            serviceToProcess.setServiceMessage(e.getMessage());
         }
     }
 
-    private boolean validateResponse(String response){
+
+    private boolean validateResponse(String response) {
         return true;
     }
 

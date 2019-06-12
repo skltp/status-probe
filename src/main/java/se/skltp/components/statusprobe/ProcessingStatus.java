@@ -20,45 +20,16 @@
  */
 package se.skltp.components.statusprobe;
 
-
 import lombok.Data;
 
-import javax.xml.bind.annotation.XmlElement;
-import javax.xml.bind.annotation.XmlRootElement;
-
 @Data
-@XmlRootElement
 public class ProcessingStatus {
-
-    @XmlElement
-    String name;
-
-    @XmlElement
-    String url;
-
-    @XmlElement
-    boolean probeAvailable;
-
-    @XmlElement
-    String probeMessage;
-
-    @XmlElement
-    boolean serviceAvailable;
-
-    @XmlElement
-    String serviceMessage;
-
-    @XmlElement
-    String connecttimeout;
-
-    @XmlElement
-    String responsetimeout;
-
-    public boolean getServiceAvailable(){
-        return serviceAvailable;
-    }
-
-    public boolean getProbeAvailable(){
-        return probeAvailable;
-    }
+    private String name;
+    private String url;
+    private boolean probeAvailable;
+    private String probeMessage;
+    private boolean serviceAvailable;
+    private String serviceMessage;
+    private String connecttimeout;
+    private String responsetimeout;
 }
