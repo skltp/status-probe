@@ -5,7 +5,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
-import se.skltp.components.statusprobe.config.ServicesConfigJson;
+import se.skltp.components.statusprobe.config.ServicesConfig;
+import se.skltp.components.statusprobe.config.ServicesConfigImpl;
 import org.apache.commons.httpclient.*;
 import org.apache.commons.httpclient.methods.*;
 
@@ -20,7 +21,7 @@ public class ProcessingStatusService {
     private ProbeStatus probeStatus;
 
     @Autowired
-    ServicesConfigJson servicesConfigJson;
+    ServicesConfig servicesConfig;
 
     @GetMapping("/probe")
     @ResponseBody
@@ -34,7 +35,7 @@ public class ProcessingStatusService {
             return response;
         }
 
-        Set<String> services = servicesConfigJson.getServices();
+        Set<String> services = servicesConfig.getServices();
         for (String service : services) {
             ProcessingStatus processingStatus = generateProcessingStatus();
             fillServiceConfiguration(processingStatus, service);
@@ -70,17 +71,17 @@ public class ProcessingStatusService {
 
     private void fillServiceConfiguration(ProcessingStatus processingStatus, String name){
         processingStatus.setName(name);
-        processingStatus.setConnecttimeout(Integer.toString(servicesConfigJson.getConnectTimeout(name)));
-        processingStatus.setResponsetimeout(Integer.toString(servicesConfigJson.getSocketTimeout(name)));
-        processingStatus.setUrl((servicesConfigJson.getUrl(name)));
+        processingStatus.setConnecttimeout(Integer.toString(servicesConfig.getConnectTimeout(name)));
+        processingStatus.setResponsetimeout(Integer.toString(servicesConfig.getSocketTimeout(name)));
+        processingStatus.setUrl((servicesConfig.getUrl(name)));
     }
 
 
     //Do HTTP Post on the selected resource
     void doPost(ProcessingStatus serviceToProcess, String name){
         HttpClient client = new HttpClient();
-        client.getHttpConnectionManager().getParams().setConnectionTimeout(servicesConfigJson.getConnectTimeout(name));
-        client.getHttpConnectionManager().getParams().setSoTimeout(servicesConfigJson.getSocketTimeout(name));
+        client.getHttpConnectionManager().getParams().setConnectionTimeout(servicesConfig.getConnectTimeout(name));
+        client.getHttpConnectionManager().getParams().setSoTimeout(servicesConfig.getSocketTimeout(name));
 
         log.debug("Connection timeout used for resource " + serviceToProcess.name + ": " + client.getHttpConnectionManager().getParams().getConnectionTimeout());
         log.debug("Response timeout used for resource " + serviceToProcess.name + ": " + client.getHttpConnectionManager().getParams().getSoTimeout());

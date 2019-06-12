@@ -1,11 +1,14 @@
 package se.skltp.components.statusprobe.config;
 
-import lombok.Data;
+import java.util.Set;
 
-@Data
-public class ServicesConfig {
-    private String name;
-    private String url;
-    private Integer connectTimeout;
-    private Integer socketTimeout;
+public interface ServicesConfig {
+
+    Set<String> getServices();
+
+    String getUrl(String name);
+
+    int getConnectTimeout(String name);
+
+    int getSocketTimeout(String name);
 }

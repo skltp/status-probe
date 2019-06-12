@@ -13,26 +13,26 @@ import java.util.*;
 
 @Slf4j
 @Configuration
-public class ServicesConfigJson {
-    Map<String, ServicesConfig> services = new HashMap();
+public class ServicesConfigImpl implements ServicesConfig {
+    private Map<String, Services> services = new HashMap();
 
-    public ServicesConfigJson(@Value("${services.file}") String servicesFile, @Value("${socket.timeout.ms}") Integer defaultSocketTimeout, @Value("${connection.timeout.ms}") Integer defaultConnectionTimeout) {
-        ObjectMapper objectMapper = new ObjectMapper();
+    public ServicesConfigImpl(@Value("${services.file}") String servicesFile, @Value("${socket.timeout.ms}") Integer defaultSocketTimeout, @Value("${connection.timeout.ms}") Integer defaultConnectionTimeout) {
         try {
-            List<ServicesConfig> servicesList = objectMapper.readValue(new File(servicesFile), new TypeReference<List<ServicesConfig>>() {
-            });
-            if (servicesList == null) {
-                servicesList = new ArrayList<>();
-            }
-            for (ServicesConfig service : servicesList) {
+            ObjectMapper objectMapper = new ObjectMapper();
+            List<Services> servicesList = objectMapper.readValue(new File(servicesFile), new TypeReference<List<Services>>(){});
+            log.info("############### Services för status check: #########################");
+            for (Services service : servicesList) {
                 if (service.getConnectTimeout() == null) {
                     service.setConnectTimeout(defaultConnectionTimeout);
                 }
                 if (service.getSocketTimeout() == null) {
                     service.setSocketTimeout(defaultSocketTimeout);
                 }
+
+                log.info("Service namn:{}, url:{}, connectTimeout:{}, socketTimeout:{} ", service.getName(), service.getUrl(), service.getConnectTimeout(), service.getSocketTimeout());
                 services.put(service.getName(), service);
             }
+            log.info("####################################################################");
         } catch (FileNotFoundException e) {
             log.error("Json file with services not found at " + servicesFile + ".");
         } catch (IOException e) {
