@@ -11,4 +11,6 @@ public interface ServicesConfig {
     int getConnectTimeout(String name);
 
     int getSocketTimeout(String name);
+
+    boolean serviceExists(String name);
 }

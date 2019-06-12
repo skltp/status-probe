@@ -44,6 +44,10 @@ public class ServicesConfigImpl implements ServicesConfig {
         return services.keySet();
     }
 
+    public boolean serviceExists(String name){
+        return services.containsKey(name);
+    }
+
     public int getConnectTimeout(String name) {
             return services.get(name).getConnectTimeout();
     }

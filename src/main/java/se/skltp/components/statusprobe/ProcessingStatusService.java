@@ -9,6 +9,7 @@ import se.skltp.components.statusprobe.config.ServicesConfig;
 import org.apache.commons.httpclient.*;
 import org.apache.commons.httpclient.methods.*;
 
+import javax.servlet.http.HttpServletResponse;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
@@ -24,14 +25,15 @@ public class ProcessingStatusService {
 
     @GetMapping("/probe")
     @ResponseBody
-    List<ProcessingStatus> getStatus() {
-        List<ProcessingStatus> response = new ArrayList<>();
+    List<ProcessingStatus> getStatus(HttpServletResponse response) {
+        List<ProcessingStatus> responseContent = new ArrayList<>();
 
         probeStatus.updateStatus();
 
         if (!probeStatus.isProbeAvailable()) {
-            response.add(generateProcessingStatus());
-            return response;
+            responseContent.add(generateProcessingStatus());
+            response.setStatus(HttpServletResponse.SC_SERVICE_UNAVAILABLE);
+            return responseContent;
         }
 
         Set<String> services = servicesConfig.getServices();
@@ -39,24 +41,40 @@ public class ProcessingStatusService {
             ProcessingStatus processingStatus = generateProcessingStatus();
             fillServiceConfiguration(service, processingStatus);
             checkServiceStatus(service, processingStatus);
-            response.add(processingStatus);
+            responseContent.add(processingStatus);
+            if(!processingStatus.isServiceAvailable()){
+                response.setStatus(HttpServletResponse.SC_SERVICE_UNAVAILABLE);
+            }
         }
 
-        return response;
+        return responseContent;
     }
 
     @GetMapping("/probe/{service}")
     @ResponseBody
-    ProcessingStatus getStatusOnName(@PathVariable String service) {
+    ProcessingStatus getStatusByName(@PathVariable String service, HttpServletResponse response) {
         probeStatus.updateStatus();
 
         ProcessingStatus processingStatus = generateProcessingStatus();
+
         if (!probeStatus.isProbeAvailable()) {
+            response.setStatus(HttpServletResponse.SC_SERVICE_UNAVAILABLE);
+            return processingStatus;
+        }
+
+        if(!servicesConfig.serviceExists(service)){
+            log.error("Requested resource with name: $name, was not found in list of resources in property file");
+            response.setStatus(HttpServletResponse.SC_NOT_FOUND);
             return processingStatus;
         }
 
         fillServiceConfiguration(service, processingStatus);
         checkServiceStatus(service, processingStatus);
+
+        if(!processingStatus.isServiceAvailable()){
+            response.setStatus(HttpServletResponse.SC_SERVICE_UNAVAILABLE);
+        }
+
         return processingStatus;
     }
 
