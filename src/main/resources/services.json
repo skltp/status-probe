@@ -1,12 +1,13 @@
 [
   {
-    "name": "vp",
-    "url" : "",
+    "name": "vp-camel",
+    "url" : "http://ine-tit-app04.sth.basefarm.net:8080/status",
     "connectTimeout": "1000",
     "socketTimeout": "2000"
   },
 
   {
-    "name": "test"
+    "name": "test",
+    "url" : "http://ine-tit-app04.sth.basefarm.net:8080/status"
   }
 ]
