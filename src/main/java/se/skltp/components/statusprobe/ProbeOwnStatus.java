@@ -13,7 +13,7 @@ import java.nio.file.Files;
 @Data
 @Component
 @Slf4j
-public class ProbeStatus {
+public class ProbeOwnStatus {
     private boolean probeAvailable;
     private String probeMessage;
 
@@ -21,7 +21,7 @@ public class ProbeStatus {
     private String downCriteria;
 
 
-    ProbeStatus(@Value("${probeservice.file}") String probeFilePath, @Value("${probe.down.crireria}") String downCriteria) {
+    ProbeOwnStatus(@Value("${probeservice.file}") String probeFilePath, @Value("${probe.down.crireria}") String downCriteria) {
         this.probeFile = new File(probeFilePath);
         this.downCriteria = downCriteria;
     }
