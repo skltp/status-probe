@@ -7,19 +7,16 @@ import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
-import org.springframework.boot.test.mock.mockito.SpyBean;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.context.junit4.SpringRunner;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
-import org.springframework.test.web.servlet.result.MockMvcResultMatchers;
 import se.skltp.components.statusprobe.config.ServicesConfig;
 
 import java.io.IOException;
 import java.util.HashSet;
 
-import static org.assertj.core.internal.bytebuddy.matcher.ElementMatchers.is;
 import static org.hamcrest.Matchers.hasSize;
 import static org.junit.Assert.assertEquals;
 import static org.mockito.ArgumentMatchers.eq;
@@ -30,9 +27,9 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 @RunWith(SpringRunner.class)
 @TestPropertySource("classpath:application.properties")
-@ContextConfiguration(classes = ProcessingStatusServiceTestConfig2.class)
+@ContextConfiguration(classes = ProcessingStatusServiceTestConfig.class)
 @WebMvcTest(ProcessingStatusService.class)
-public class ProcessingStatusServiceTest {
+public class ProcessingStatusService_Set_Test {
     @Autowired
     private MockMvc mvc;
 
@@ -54,7 +51,7 @@ public class ProcessingStatusServiceTest {
 
 
     @Before
-    public void before() throws IOException {
+    public void before() {
         HashSet<String> hashSet = new HashSet<>();
         hashSet.add(SERVICE_1);
         hashSet.add(SERVICE_2);
@@ -75,11 +72,10 @@ public class ProcessingStatusServiceTest {
     public void probeStatus_OK_verbose() throws Exception {
         Mockito.when(probeStatus.isProbeAvailable()).thenReturn(true);
         Mockito.when(probeStatus.getProbeMessage()).thenReturn("OK");
-
         Mockito.when(requestSender.sendStatusRequest(Mockito.anyString(), Mockito.anyInt(), Mockito.anyInt())).thenReturn(new ServiceResponse(200, "OK"));
 
-
         ResultActions result = mvc.perform(get("/probe").param("verbose", "true"));
+
         result.andExpect(status().isOk());
         result.andExpect(jsonPath("$.[0].probeMessage").value("OK"));
         result.andExpect(jsonPath("$.[0].probeAvailable").value(true));
@@ -97,12 +93,11 @@ public class ProcessingStatusServiceTest {
     public void probe_Down() throws Exception {
         Mockito.when(probeStatus.isProbeAvailable()).thenReturn(false);
         Mockito.when(probeStatus.getProbeMessage()).thenReturn("DOWN");
-
         Mockito.when(requestSender.sendStatusRequest(Mockito.anyString(), Mockito.anyInt(), Mockito.anyInt())).thenReturn(new ServiceResponse(200, "OK"));
 
         ResultActions result = mvc.perform(get("/probe"));
-        result.andExpect(status().isServiceUnavailable());
 
+        result.andExpect(status().isServiceUnavailable());
         result.andExpect(jsonPath("$", hasSize(2)));
         result.andExpect(jsonPath("$.[0].probeMessage").value("DOWN"));
         result.andExpect(jsonPath("$.[0].probeAvailable").value(false));
@@ -122,13 +117,12 @@ public class ProcessingStatusServiceTest {
     public void testService_fail() throws Exception {
         Mockito.when(probeStatus.isProbeAvailable()).thenReturn(true);
         Mockito.when(probeStatus.getProbeMessage()).thenReturn("OK");
-
         Mockito.when(requestSender.sendStatusRequest(eq(URL_1), Mockito.anyInt(), Mockito.anyInt())).thenReturn(new ServiceResponse(503, "Fel"));
         Mockito.when(requestSender.sendStatusRequest(eq(URL_2), Mockito.anyInt(), Mockito.anyInt())).thenReturn(new ServiceResponse(200, "OK"));
 
         ResultActions result = mvc.perform(get("/probe"));
-        result.andExpect(status().isServiceUnavailable());
 
+        result.andExpect(status().isServiceUnavailable());
         result.andExpect(jsonPath("$", hasSize(2)));
         result.andExpect(jsonPath("$.[0].probeMessage").value("OK"));
         result.andExpect(jsonPath("$.[0].probeAvailable").value(true));
@@ -146,15 +140,11 @@ public class ProcessingStatusServiceTest {
     public void testServiceException() throws Exception {
         Mockito.when(probeStatus.isProbeAvailable()).thenReturn(true);
         Mockito.when(probeStatus.getProbeMessage()).thenReturn("OK");
-
         Mockito.when(requestSender.sendStatusRequest(Mockito.anyString(), Mockito.anyInt(), Mockito.anyInt())).thenThrow(new IOException("Exception"));
 
         ResultActions result = mvc.perform(get("/probe"));
+
         result.andExpect(status().isServiceUnavailable());
-
-        String response = result.andReturn().getResponse().getContentAsString();
-
-        System.out.println(response);
         result.andExpect(jsonPath("$", hasSize(2)));
         result.andExpect(jsonPath("$.[0].probeMessage").value("OK"));
         result.andExpect(jsonPath("$.[0].probeAvailable").value(true));
@@ -174,13 +164,11 @@ public class ProcessingStatusServiceTest {
     public void testService_ok_verbose() throws Exception {
         Mockito.when(probeStatus.isProbeAvailable()).thenReturn(true);
         Mockito.when(probeStatus.getProbeMessage()).thenReturn("OK");
-
         Mockito.when(requestSender.sendStatusRequest(Mockito.anyString(), Mockito.anyInt(), Mockito.anyInt())).thenReturn(new ServiceResponse(200, "OK"));
 
         ResultActions result = mvc.perform(get("/probe").param("verbose", "true"));
 
         result.andExpect(status().isOk());
-
         result.andExpect(jsonPath("$", hasSize(2)));
         result.andExpect(jsonPath("$.[0].probeMessage").value("OK"));
         result.andExpect(jsonPath("$.[0].probeAvailable").value(true));
@@ -196,7 +184,7 @@ public class ProcessingStatusServiceTest {
     }
 
     @Test
-    public void testService_ok_() throws Exception {
+    public void testService_ok() throws Exception {
         Mockito.when(probeStatus.isProbeAvailable()).thenReturn(true);
         Mockito.when(probeStatus.getProbeMessage()).thenReturn("OK");
         Mockito.when(requestSender.sendStatusRequest(Mockito.anyString(), Mockito.anyInt(), Mockito.anyInt())).thenReturn(new ServiceResponse(200, "OK"));
@@ -208,7 +196,6 @@ public class ProcessingStatusServiceTest {
         String ok_response = result.andReturn().getResponse().getContentAsString();
 
         assertEquals("OK", ok_response.trim());
-
     }
 
 }

@@ -28,7 +28,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @TestPropertySource("classpath:application.properties")
 @ContextConfiguration(classes = ProcessingStatusServiceTestConfig.class)
 @WebMvcTest(ProcessingStatusService.class)
-public class ProcessingStatusService_One {
+public class ProcessingStatusService_One_Test {
     @Autowired
     private MockMvc mvc;
 
@@ -54,7 +54,6 @@ public class ProcessingStatusService_One {
         hashSet.add(SERVICE_1);
         hashSet.add(SERVICE_2);
         Mockito.when(servicesConfig.getServices()).thenReturn(hashSet);
-
 
         Mockito.when(servicesConfig.getUrl(SERVICE_1)).thenReturn(URL_1);
         Mockito.when(servicesConfig.getUrl(SERVICE_2)).thenReturn(URL_2);
@@ -152,12 +151,26 @@ public class ProcessingStatusService_One {
         ResultActions result = mvc.perform(get("/probe/" + SERVICE_1).param("verbose", "true"));
 
         result.andExpect(status().isServiceUnavailable());
-
         result.andExpect(jsonPath("$.probeMessage").value("OK"));
         result.andExpect(jsonPath("$.probeAvailable").value(true));
         result.andExpect(jsonPath("$.serviceAvailable").value(false));
         result.andExpect(jsonPath("$.serviceMessage").value("Fel"));
-
     }
 
+    @Test
+    public void testServiceException() throws Exception {
+        Mockito.when(probeStatus.isProbeAvailable()).thenReturn(true);
+        Mockito.when(probeStatus.getProbeMessage()).thenReturn("OK");
+        Mockito.when(servicesConfig.serviceExists(SERVICE_1)).thenReturn(true);
+        Mockito.when(requestSender.sendStatusRequest(Mockito.anyString(), Mockito.anyInt(), Mockito.anyInt())).thenThrow(new IOException("Exception"));
+
+        ResultActions result = mvc.perform(get("/probe/" + SERVICE_1));
+
+        result.andExpect(status().isServiceUnavailable());
+
+        result.andExpect(jsonPath("$.probeMessage").value("OK"));
+        result.andExpect(jsonPath("$.probeAvailable").value(true));
+        result.andExpect(jsonPath("$.serviceAvailable").value(false));
+        result.andExpect(jsonPath("$.serviceMessage").value("Exception"));
+    }
 }

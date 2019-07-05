@@ -36,7 +36,6 @@ public class ProcessingStatusService_withEmptyServicesTest {
     @MockBean
     private ServicesConfig servicesConfig;
 
-
     @Test
     public void probeStatus_DOWN() throws Exception {
         Mockito.when(probeStatus.isProbeAvailable()).thenReturn(false);
@@ -58,6 +57,7 @@ public class ProcessingStatusService_withEmptyServicesTest {
         Mockito.when(servicesConfig.getServices()).thenReturn(new HashSet());
 
         ResultActions result = mvc.perform(get("/probe").param("verbose", "true"));
+
         result.andExpect(status().isOk());
         result.andExpect(MockMvcResultMatchers.jsonPath("$.probeMessage").value("OK"));
         result.andExpect(MockMvcResultMatchers.jsonPath("$.probeAvailable").value(true));
@@ -70,9 +70,9 @@ public class ProcessingStatusService_withEmptyServicesTest {
         Mockito.when(servicesConfig.getServices()).thenReturn(new HashSet());
 
         ResultActions result = mvc.perform(get("/probe"));
+
         result.andExpect(status().isOk());
         String ok_response = result.andReturn().getResponse().getContentAsString();
-
         assertEquals("OK", ok_response.trim());
     }
 
