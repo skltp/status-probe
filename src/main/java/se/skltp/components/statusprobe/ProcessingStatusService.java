@@ -1,15 +1,17 @@
 package se.skltp.components.statusprobe;
 
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.httpclient.HttpClient;
+import org.apache.commons.httpclient.methods.GetMethod;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
 import se.skltp.components.statusprobe.config.ServicesConfig;
-import org.apache.commons.httpclient.*;
-import org.apache.commons.httpclient.methods.*;
 
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
@@ -17,35 +19,38 @@ import java.util.ArrayList;
 import java.util.List;
 
 // todo Hantera exceptions på bra sett
-// todo kanske returnera contentType=application/json om det behövs
-// todo kanske det är möligt göra algoritm enklare(eller mer generaliserad). Med det behövs att veta hur LB jobbar med response
 // todo validera response
-// todo tester
 
 @Slf4j
 @RestController
 public class ProcessingStatusService {
 
-    @Value("probe.return.ok.string")
-    String defaultOkReturnString;
+    @Value("${probe.return.ok.string}")
+    private String defaultOkReturnString;
+
+    private HttpClient client;
 
     @Autowired
     private ProbeOwnStatus probeStatus;
 
     @Autowired
-    ServicesConfig servicesConfig;
+    private ServicesConfig servicesConfig;
 
     @Autowired
-    StatusConverter responseConverter;
+    private StatusConverter responseConverter;
 
-    @GetMapping("/probe")
-    void getStatus(HttpServletResponse response, @PathVariable(name = "verbose", required = false) boolean verbose) throws IOException {
+    @Autowired
+    private RequestSender requestSender;
+
+
+    @GetMapping(value = "/probe")
+    void getStatus(HttpServletResponse response, @RequestParam(name = "verbose", required = false) boolean verbose) throws IOException {
         log.debug("getStatus() called on all resources behind probe using verbose={}", verbose);
 
         probeStatus.updateStatus();
 
         if (servicesConfig.getServices().isEmpty()) {
-            ProcessingStatus statusProbeOwnStatus = generateProcessingStatus();
+            ProcessingStatus statusProbeOwnStatus = fillProbeStatus(new ProcessingStatus());
 
             if (!probeStatus.isProbeAvailable()) {
                 generateResponse(response, HttpServletResponse.SC_SERVICE_UNAVAILABLE, responseConverter.convert(statusProbeOwnStatus));
@@ -60,14 +65,10 @@ public class ProcessingStatusService {
             List<ProcessingStatus> services = getServicesToProcess();
 
             if (!probeStatus.isProbeAvailable()) {
-                for (ProcessingStatus status : services) {
-                    status.setProbeAvailable(probeStatus.isProbeAvailable());
-                    status.setProbeMessage(probeStatus.getProbeMessage());
-                }
                 generateResponse(response, HttpServletResponse.SC_SERVICE_UNAVAILABLE, responseConverter.convert(services));
             } else {
                 for (ProcessingStatus status : services) {
-                    checkServiceStatus(status.getName(), status);
+                    checkServiceStatus(status);
                 }
 
                 for (ProcessingStatus status : services) {
@@ -76,7 +77,6 @@ public class ProcessingStatusService {
                         return;
                     }
                 }
-
                 if (!verbose) {
                     generateResponse(response, HttpServletResponse.SC_OK, defaultOkReturnString);
                 } else {
@@ -86,60 +86,57 @@ public class ProcessingStatusService {
         }
     }
 
-    private void generateResponse(HttpServletResponse response, int status, String message) throws IOException {
-        response.setStatus(status);
-        response.getWriter().println(message);
-    }
-
-    private List<ProcessingStatus> getServicesToProcess() {
-        List<ProcessingStatus> responseContent = new ArrayList<>();
-        for (String service : servicesConfig.getServices()) {
-            ProcessingStatus processingStatus = generateProcessingStatus();
-            fillServiceConfiguration(service, processingStatus);
-            responseContent.add(processingStatus);
-        }
-        return responseContent;
-    }
-
 
     @GetMapping("/probe/{service}")
-    public void getStatusByName(@PathVariable String service, HttpServletResponse response, @PathVariable(name = "verbose", required = false) boolean verbose) throws IOException {
+    public void getStatusByName(@PathVariable String service, HttpServletResponse response, @RequestParam(name = "verbose", required = false) boolean verbose) throws IOException {
         log.debug("getStatus() called on resource name={} using verbose={}", service, verbose);
 
         probeStatus.updateStatus();
 
-        ProcessingStatus processingStatus = generateProcessingStatus();
+        ProcessingStatus processingStatus = fillProbeStatus(new ProcessingStatus());
+        fillServiceConfiguration(service, processingStatus);
 
         if (!servicesConfig.serviceExists(service)) {
-            log.error("Requested resource with name: $name, was not found in list of resources in property file");
+            log.error("Requested resource with name: {}, was not found in list of resources in property file", service);
             generateResponse(response, HttpServletResponse.SC_NOT_FOUND, responseConverter.convert(processingStatus));
             return;
         }
-
 
         if (!probeStatus.isProbeAvailable()) {
             generateResponse(response, HttpServletResponse.SC_SERVICE_UNAVAILABLE, responseConverter.convert(processingStatus));
             return;
         }
 
-        fillServiceConfiguration(service, processingStatus);
-        checkServiceStatus(service, processingStatus);
+        checkServiceStatus(processingStatus);
 
         if (!processingStatus.isServiceAvailable()) {
             generateResponse(response, HttpServletResponse.SC_SERVICE_UNAVAILABLE, responseConverter.convert(processingStatus));
-            return;
-        }
-
-        if (!verbose) {
-            generateResponse(response, HttpServletResponse.SC_OK, defaultOkReturnString);
         } else {
-            generateResponse(response, HttpServletResponse.SC_OK, responseConverter.convert(processingStatus));
+            if (!verbose) {
+                generateResponse(response, HttpServletResponse.SC_OK, defaultOkReturnString);
+            } else {
+                generateResponse(response, HttpServletResponse.SC_OK, responseConverter.convert(processingStatus));
+            }
         }
     }
 
+    private void generateResponse(HttpServletResponse response, int status, String message) throws IOException {
+        response.setStatus(status);
+        response.getWriter().println(message);
+        response.setContentType("application/json");
+    }
 
-    private ProcessingStatus generateProcessingStatus() {
-        ProcessingStatus processingStatus = new ProcessingStatus();
+    private List<ProcessingStatus> getServicesToProcess() {
+        List<ProcessingStatus> processingStatuses = new ArrayList<>();
+        for (String service : servicesConfig.getServices()) {
+            ProcessingStatus processingStatus = fillProbeStatus(new ProcessingStatus());
+            fillServiceConfiguration(service, processingStatus);
+            processingStatuses.add(processingStatus);
+        }
+        return processingStatuses;
+    }
+
+    private ProcessingStatus fillProbeStatus(ProcessingStatus processingStatus) {
         processingStatus.setProbeAvailable(probeStatus.isProbeAvailable());
         processingStatus.setProbeMessage(probeStatus.getProbeMessage());
         return processingStatus;
@@ -153,44 +150,32 @@ public class ProcessingStatusService {
     }
 
 
-    //Do HTTP Get on the selected resource
-    private void checkServiceStatus(String name, ProcessingStatus serviceToProcess) {
-        HttpClient client = new HttpClient();
-        client.getHttpConnectionManager().getParams().setConnectionTimeout(servicesConfig.getConnectTimeout(name));
-        client.getHttpConnectionManager().getParams().setSoTimeout(servicesConfig.getSocketTimeout(name));
 
-        log.debug("Connection timeout used for resource " + serviceToProcess.getName() + ": " + client.getHttpConnectionManager().getParams().getConnectionTimeout());
-        log.debug("Response timeout used for resource " + serviceToProcess.getName() + ": " + client.getHttpConnectionManager().getParams().getSoTimeout());
-
-        GetMethod method = new GetMethod(servicesConfig.getUrl(name));
-        method.setRequestHeader("Connection", "close");
-
+    private void checkServiceStatus(ProcessingStatus serviceToProcess) {
         try {
-            int status = client.executeMethod(method);
-            log.info("Resource: {}, HTTP status code: {}, URL: {}", name, status, serviceToProcess.getUrl());
+            String url = servicesConfig.getUrl(serviceToProcess.getName());
+            int connectionTimeout = servicesConfig.getConnectTimeout(serviceToProcess.getName());
+            int responseTimeout = servicesConfig.getSocketTimeout(serviceToProcess.getName());
 
-            String responseMessage = method.getResponseBodyAsString();
-            serviceToProcess.setServiceMessage(responseMessage);
+            ServiceResponse response = requestSender.sendStatusRequest(url, connectionTimeout,responseTimeout);
 
-            boolean validatingStatus = validateResponse(method.getResponseBodyAsString());
+            serviceToProcess.setServiceMessage(response.getMessage());
 
-
-            if (status == HttpStatus.OK.value() && validatingStatus) {
+            boolean validatingStatus = validateResponse(response.getMessage());
+            if (response.getStatusCode() == HttpStatus.OK.value() && validatingStatus) {
                 serviceToProcess.setServiceAvailable(true);
             } else {
                 serviceToProcess.setServiceAvailable(false);
             }
+            log.info("Resource: {}, HTTP status code: {}, URL: {}", serviceToProcess.getName(), response.getStatusCode(), url);
 
-            method.releaseConnection();
         } catch (Exception e) {
             log.error("Exception: " + e.getMessage() + " occured. Resource: " + serviceToProcess.getName() + ", URL " + serviceToProcess.getUrl());
-            log.error("Exception: $e");
 
             serviceToProcess.setServiceAvailable(false);
             serviceToProcess.setServiceMessage(e.getMessage());
         }
     }
-
 
     private boolean validateResponse(String response) {
         //todo
