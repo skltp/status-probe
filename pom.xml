@@ -10,12 +10,12 @@
 	</parent>
 	<groupId>se.skltp.components</groupId>
 	<artifactId>status-probe</artifactId>
-	<version>0.0.1-SNAPSHOT</version>
-	<packaging>war</packaging>
+	<version>1.0.0-SNAPSHOT</version>
 	<name>status-probe</name>
 
 	<properties>
 		<java.version>1.8</java.version>
+		<spring.boot-version>2.1.0.RELEASE</spring.boot-version>
 	</properties>
 
 	<scm>
@@ -26,18 +26,18 @@
 		<tag>HEAD</tag>
 	</scm>
 
-	<!--<distributionManagement>-->
-		<!--<repository>-->
-			<!--<id>release-nexus</id>-->
-			<!--<name>Release Nexus</name>-->
-			<!--<url>${releases-nexus-url}</url>-->
-		<!--</repository>-->
-		<!--<snapshotRepository>-->
-			<!--<id>snapshot-nexus</id>-->
-			<!--<name>Snapshot Nexus</name>-->
-			<!--<url>${snapshot-nexus-url}</url>-->
-		<!--</snapshotRepository>-->
-	<!--</distributionManagement>-->
+	<distributionManagement>
+		<repository>
+			<id>release-nexus</id>
+			<name>Release Nexus</name>
+			<url>${releases-nexus-url}</url>
+		</repository>
+		<snapshotRepository>
+			<id>snapshot-nexus</id>
+			<name>Snapshot Nexus</name>
+			<url>${snapshot-nexus-url}</url>
+		</snapshotRepository>
+	</distributionManagement>
 
 	<dependencies>
 		<dependency>
@@ -74,8 +74,15 @@
 			<plugin>
 				<groupId>org.springframework.boot</groupId>
 				<artifactId>spring-boot-maven-plugin</artifactId>
+				<version>${spring.boot-version}</version>
+				<executions>
+					<execution>
+						<goals>
+							<goal>repackage</goal>
+						</goals>
+					</execution>
+				</executions>
 			</plugin>
 		</plugins>
 	</build>
-
 </project>
