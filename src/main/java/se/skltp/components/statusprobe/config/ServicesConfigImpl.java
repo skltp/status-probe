@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Configuration;
+import se.skltp.components.statusprobe.Service;
 
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -19,7 +20,8 @@ public class ServicesConfigImpl implements ServicesConfig {
     public ServicesConfigImpl(@Value("${services.file}") String servicesFile, @Value("${socket.timeout.ms}") Integer defaultSocketTimeout, @Value("${connection.timeout.ms}") Integer defaultConnectionTimeout) {
         try {
             ObjectMapper objectMapper = new ObjectMapper();
-            List<Service> servicesList = objectMapper.readValue(new File(servicesFile), new TypeReference<List<Service>>(){});
+            List<Service> servicesList = objectMapper.readValue(new File(servicesFile), new TypeReference<List<Service>>() {
+            });
             log.info("############### Service för status check: #########################");
             for (Service service : servicesList) {
                 if (service.getConnectTimeout() == null) {
@@ -30,6 +32,7 @@ public class ServicesConfigImpl implements ServicesConfig {
                 }
 
                 log.info("Service namn:{}, url:{}, connectTimeout:{}, socketTimeout:{} ", service.getName(), service.getUrl(), service.getConnectTimeout(), service.getSocketTimeout());
+                log.info("Status values: " + service.getStatusValues());
                 services.put(service.getName(), service);
             }
             log.info("####################################################################");
@@ -44,19 +47,31 @@ public class ServicesConfigImpl implements ServicesConfig {
         return services.keySet();
     }
 
-    public boolean serviceExists(String name){
+    public boolean serviceExists(String name) {
         return services.containsKey(name);
     }
 
     public int getConnectTimeout(String name) {
+        if (serviceExists(name))
             return services.get(name).getConnectTimeout();
+        else return 0;
     }
 
     public int getSocketTimeout(String name) {
-        return services.get(name).getSocketTimeout();
+        if (serviceExists(name))
+            return services.get(name).getSocketTimeout();
+        else return 0;
     }
 
     public String getUrl(String name) {
-        return services.get(name).getUrl();
+        if (serviceExists(name))
+            return services.get(name).getUrl();
+        else return null;
+    }
+
+    public List<String> getStatusValues(String name) {
+        if (serviceExists(name))
+            return services.get(name).getStatusValues();
+        else return new ArrayList<>();
     }
 }

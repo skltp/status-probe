@@ -1,4 +1,4 @@
-package se.skltp.components.statusprobe;
+package se.skltp.components.statusprobe.unit;
 
 import org.junit.Test;
 import org.junit.runner.RunWith;

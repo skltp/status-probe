@@ -1,10 +1,10 @@
-package se.skltp.components.statusprobe;
+package se.skltp.components.statusprobe.unit;
 
 import org.hamcrest.CoreMatchers;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.junit4.SpringRunner;
+import se.skltp.components.statusprobe.ProbeOwnStatus;
 
 import java.net.URL;
 

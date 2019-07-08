@@ -28,6 +28,4 @@ public class RequestSender {
         client.getHttpConnectionManager().getParams().setSoTimeout(socketTimeout);
         return client;
     }
-
-
 }

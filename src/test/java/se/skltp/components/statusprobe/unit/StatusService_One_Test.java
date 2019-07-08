@@ -1,4 +1,4 @@
-package se.skltp.components.statusprobe;
+package se.skltp.components.statusprobe.unit;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -13,6 +13,10 @@ import org.springframework.test.context.junit4.SpringRunner;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers;
+import se.skltp.components.statusprobe.ProbeOwnStatus;
+import se.skltp.components.statusprobe.ProcessingStatusService;
+import se.skltp.components.statusprobe.RequestSender;
+import se.skltp.components.statusprobe.ServiceResponse;
 import se.skltp.components.statusprobe.config.ServicesConfig;
 
 import java.io.IOException;
@@ -26,9 +30,9 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 @RunWith(SpringRunner.class)
 @TestPropertySource("classpath:application.properties")
-@ContextConfiguration(classes = ProcessingStatusServiceTestConfig.class)
+@ContextConfiguration(classes = TestConfig.class)
 @WebMvcTest(ProcessingStatusService.class)
-public class ProcessingStatusService_One_Test {
+public class StatusService_One_Test {
     @Autowired
     private MockMvc mvc;
 
@@ -49,7 +53,7 @@ public class ProcessingStatusService_One_Test {
     private String URL_2 = "http://url2";
 
     @Before
-    public void before() throws IOException {
+    public void before() {
         HashSet<String> hashSet = new HashSet<>();
         hashSet.add(SERVICE_1);
         hashSet.add(SERVICE_2);

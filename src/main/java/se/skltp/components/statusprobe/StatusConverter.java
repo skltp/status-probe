@@ -10,15 +10,12 @@ import java.util.List;
 public class StatusConverter {
     private ObjectMapper mapper = new ObjectMapper();
 
-    public String convert(ProcessingStatus processingStatus) throws JsonProcessingException {
-        return mapper.writerWithDefaultPrettyPrinter().writeValueAsString(processingStatus);
+    public String convert(ServiceStatus serviceStatus) throws JsonProcessingException {
+        return mapper.writerWithDefaultPrettyPrinter().writeValueAsString(serviceStatus);
 
     }
 
-    public String convert(List<ProcessingStatus> processingStatusList) throws JsonProcessingException {
-        return mapper.writerWithDefaultPrettyPrinter().writeValueAsString(processingStatusList);
+    public String convert(List<ServiceStatus> serviceStatusList) throws JsonProcessingException {
+        return mapper.writerWithDefaultPrettyPrinter().writeValueAsString(serviceStatusList);
     }
-
-
-
 }

@@ -21,14 +21,14 @@ public class ProbeOwnStatus {
     private String downCriteria;
 
 
-    ProbeOwnStatus(@Value("${probeservice.file}") String probeFilePath, @Value("${probe.down.crireria}") String downCriteria) {
+    public ProbeOwnStatus(@Value("${probeservice.file}") String probeFilePath, @Value("${probe.down.crireria}") String downCriteria) {
         this.probeFile = new File(probeFilePath);
         this.downCriteria = downCriteria;
     }
 
     public void updateStatus() {
         if (!probeFile.exists()) {
-            probeMessage = "Configured probeFile " + probeFile + " does not exist, StatusProbe signals unavailable when file is missing";
+            probeMessage = "Configured probeFile " + probeFile + " does not exist, StatusProbe signals unavailable when file is missing.";
             probeAvailable = false;
             return;
         }

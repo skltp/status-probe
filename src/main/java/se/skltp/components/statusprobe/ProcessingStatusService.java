@@ -15,7 +15,9 @@ import se.skltp.components.statusprobe.config.ServicesConfig;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
+import java.util.Set;
 // todo validera response
 
 @Slf4j
@@ -39,6 +41,9 @@ public class ProcessingStatusService {
     @Autowired
     private RequestSender requestSender;
 
+    @Autowired
+    private ServiceStatusChecker statusChecker;
+
 
     @GetMapping(value = "/probe")
     void getStatus(HttpServletResponse response, @RequestParam(name = "verbose", required = false) boolean verbose) {
@@ -47,7 +52,7 @@ public class ProcessingStatusService {
             probeStatus.updateStatus();
 
             if (servicesConfig.getServices().isEmpty()) {
-                ProcessingStatus statusProbeOwnStatus = fillProbeStatus(new ProcessingStatus());
+                ServiceStatus statusProbeOwnStatus = fillProbeStatus(new ServiceStatus());
 
                 if (!probeStatus.isProbeAvailable()) {
                     generateResponse(response, HttpServletResponse.SC_SERVICE_UNAVAILABLE, responseConverter.convert(statusProbeOwnStatus));
@@ -59,16 +64,16 @@ public class ProcessingStatusService {
                     }
                 }
             } else {
-                List<ProcessingStatus> services = getServicesToProcess();
+                List<ServiceStatus> services = getServicesToProcess();
 
                 if (!probeStatus.isProbeAvailable()) {
                     generateResponse(response, HttpServletResponse.SC_SERVICE_UNAVAILABLE, responseConverter.convert(services));
                 } else {
-                    for (ProcessingStatus status : services) {
+                    for (ServiceStatus status : services) {
                         checkServiceStatus(status);
                     }
 
-                    for (ProcessingStatus status : services) {
+                    for (ServiceStatus status : services) {
                         if (!status.isServiceAvailable()) {
                             generateResponse(response, HttpServletResponse.SC_SERVICE_UNAVAILABLE, responseConverter.convert(services));
                             return;
@@ -95,29 +100,29 @@ public class ProcessingStatusService {
         try {
             probeStatus.updateStatus();
 
-            ProcessingStatus processingStatus = fillProbeStatus(new ProcessingStatus());
-            fillServiceConfiguration(service, processingStatus);
+            ServiceStatus serviceStatus = fillProbeStatus(new ServiceStatus());
+            fillServiceConfiguration(service, serviceStatus);
 
             if (!servicesConfig.serviceExists(service)) {
                 log.error("Requested resource with name: {}, was not found in list of resources in property file", service);
-                generateResponse(response, HttpServletResponse.SC_NOT_FOUND, responseConverter.convert(processingStatus));
+                generateResponse(response, HttpServletResponse.SC_NOT_FOUND, responseConverter.convert(serviceStatus));
                 return;
             }
 
             if (!probeStatus.isProbeAvailable()) {
-                generateResponse(response, HttpServletResponse.SC_SERVICE_UNAVAILABLE, responseConverter.convert(processingStatus));
+                generateResponse(response, HttpServletResponse.SC_SERVICE_UNAVAILABLE, responseConverter.convert(serviceStatus));
                 return;
             }
 
-            checkServiceStatus(processingStatus);
+            checkServiceStatus(serviceStatus);
 
-            if (!processingStatus.isServiceAvailable()) {
-                generateResponse(response, HttpServletResponse.SC_SERVICE_UNAVAILABLE, responseConverter.convert(processingStatus));
+            if (!serviceStatus.isServiceAvailable()) {
+                generateResponse(response, HttpServletResponse.SC_SERVICE_UNAVAILABLE, responseConverter.convert(serviceStatus));
             } else {
                 if (!verbose) {
                     generateResponse(response, HttpServletResponse.SC_OK, defaultOkReturnString);
                 } else {
-                    generateResponse(response, HttpServletResponse.SC_OK, responseConverter.convert(processingStatus));
+                    generateResponse(response, HttpServletResponse.SC_OK, responseConverter.convert(serviceStatus));
                 }
             }
         } catch (IOException e) {
@@ -132,48 +137,53 @@ public class ProcessingStatusService {
         response.setContentType("application/json");
     }
 
-    private List<ProcessingStatus> getServicesToProcess() {
-        List<ProcessingStatus> processingStatuses = new ArrayList<>();
+    private List<ServiceStatus> getServicesToProcess() {
+        List<ServiceStatus> serviceStatuses = new ArrayList<>();
         for (String service : servicesConfig.getServices()) {
-            ProcessingStatus processingStatus = fillProbeStatus(new ProcessingStatus());
-            fillServiceConfiguration(service, processingStatus);
-            processingStatuses.add(processingStatus);
+            ServiceStatus serviceStatus = fillProbeStatus(new ServiceStatus());
+            fillServiceConfiguration(service, serviceStatus);
+            serviceStatuses.add(serviceStatus);
         }
-        return processingStatuses;
+        return serviceStatuses;
     }
 
-    private ProcessingStatus fillProbeStatus(ProcessingStatus processingStatus) {
-        processingStatus.setProbeAvailable(probeStatus.isProbeAvailable());
-        processingStatus.setProbeMessage(probeStatus.getProbeMessage());
-        return processingStatus;
+    private ServiceStatus fillProbeStatus(ServiceStatus serviceStatus) {
+        serviceStatus.setProbeAvailable(probeStatus.isProbeAvailable());
+        serviceStatus.setProbeMessage(probeStatus.getProbeMessage());
+        return serviceStatus;
     }
 
-    private void fillServiceConfiguration(String name, ProcessingStatus processingStatus) {
-        processingStatus.setName(name);
-        processingStatus.setConnecttimeout(Integer.toString(servicesConfig.getConnectTimeout(name)));
-        processingStatus.setResponsetimeout(Integer.toString(servicesConfig.getSocketTimeout(name)));
-        processingStatus.setUrl((servicesConfig.getUrl(name)));
+    private void fillServiceConfiguration(String name, ServiceStatus serviceStatus) {
+        serviceStatus.setName(name);
+        serviceStatus.setConnecttimeout(Integer.toString(servicesConfig.getConnectTimeout(name)));
+        serviceStatus.setResponsetimeout(Integer.toString(servicesConfig.getSocketTimeout(name)));
+        serviceStatus.setUrl((servicesConfig.getUrl(name)));
     }
 
 
-    private void checkServiceStatus(ProcessingStatus serviceToProcess) {
+    public void checkServiceStatus(ServiceStatus serviceToProcess) {
         try {
             String url = servicesConfig.getUrl(serviceToProcess.getName());
             int connectionTimeout = servicesConfig.getConnectTimeout(serviceToProcess.getName());
             int responseTimeout = servicesConfig.getSocketTimeout(serviceToProcess.getName());
 
             ServiceResponse response = requestSender.sendStatusRequest(url, connectionTimeout, responseTimeout);
+            log.info("Resource: {}, HTTP status code: {}, URL: {}", serviceToProcess.getName(), response.getStatusCode(), url);
 
-            serviceToProcess.setServiceMessage(response.getMessage());
+            Set<String> missing = statusChecker.checkStatus(response.getMessage(), servicesConfig.getStatusValues(serviceToProcess.getName()));
 
-            boolean validatingStatus = validateResponse(response.getMessage());
-            if (response.getStatusCode() == HttpStatus.OK.value() && validatingStatus) {
+            if (response.getStatusCode() == HttpStatus.OK.value()) {
                 serviceToProcess.setServiceAvailable(true);
             } else {
                 serviceToProcess.setServiceAvailable(false);
             }
-            log.info("Resource: {}, HTTP status code: {}, URL: {}", serviceToProcess.getName(), response.getStatusCode(), url);
 
+            if (missing.isEmpty()) {
+                serviceToProcess.setServiceMessage(response.getMessage());
+            } else {
+                serviceToProcess.setServiceAvailable(false);
+                serviceToProcess.setServiceMessage("Missing values: " + Arrays.toString(missing.toArray()) + " In server response: " + response.getMessage());
+            }
         } catch (Exception e) {
             log.error("Exception: " + e.getMessage() + " occured. Resource: " + serviceToProcess.getName() + ", URL " + serviceToProcess.getUrl());
 
@@ -181,10 +191,4 @@ public class ProcessingStatusService {
             serviceToProcess.setServiceMessage(e.getMessage());
         }
     }
-
-    private boolean validateResponse(String response) {
-        //todo
-        return true;
-    }
-
 }

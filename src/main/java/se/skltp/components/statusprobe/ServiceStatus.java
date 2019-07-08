@@ -23,7 +23,7 @@ package se.skltp.components.statusprobe;
 import lombok.Data;
 
 @Data
-public class ProcessingStatus {
+public class ServiceStatus {
     private String name;
     private String url;
     private boolean probeAvailable;
