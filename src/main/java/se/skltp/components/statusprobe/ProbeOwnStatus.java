@@ -50,4 +50,5 @@ public class ProbeOwnStatus {
 
         log.info("StatusProbe signals serviceAvailable {} and message {}", probeAvailable, probeMessage);
     }
+
 }

@@ -17,6 +17,7 @@ import se.skltp.components.statusprobe.ProcessingStatusService;
 import se.skltp.components.statusprobe.RequestSender;
 import se.skltp.components.statusprobe.ServiceResponse;
 import se.skltp.components.statusprobe.config.ServicesConfig;
+import se.skltp.components.statusprobe.config.StartupException;
 
 import java.io.IOException;
 import java.util.HashSet;
@@ -55,7 +56,7 @@ public class StatusService_Set_Test {
 
 
     @Before
-    public void before() {
+    public void before() throws StartupException {
         HashSet<String> hashSet = new HashSet<>();
         hashSet.add(SERVICE_1);
         hashSet.add(SERVICE_2);

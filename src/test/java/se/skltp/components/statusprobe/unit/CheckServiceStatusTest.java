@@ -15,6 +15,7 @@ import se.skltp.components.statusprobe.RequestSender;
 import se.skltp.components.statusprobe.ServiceResponse;
 import se.skltp.components.statusprobe.ServiceStatus;
 import se.skltp.components.statusprobe.config.ServicesConfig;
+import se.skltp.components.statusprobe.config.StartupException;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -68,7 +69,7 @@ public class CheckServiceStatusTest {
             "4\"http://0.0.0.0:8080/status\"" ;
 
     @Before
-    public void before() {
+    public void before() throws StartupException {
         HashSet<String> hashSet = new HashSet<>();
         hashSet.add(SERVICE_1);
         hashSet.add(SERVICE_2);
@@ -86,7 +87,7 @@ public class CheckServiceStatusTest {
 
 
     @Test
-    public void test_ok() throws IOException {
+    public void test_ok() throws IOException, StartupException {
         Mockito.when(requestSender.sendStatusRequest(Mockito.anyString(), Mockito.anyInt(), Mockito.anyInt())).thenReturn(new ServiceResponse(200, response));
         Mockito.when(servicesConfig.getStatusValues(SERVICE_1)).thenReturn(new ArrayList<>());
 
@@ -100,7 +101,7 @@ public class CheckServiceStatusTest {
     }
 
     @Test
-    public void test_ok_with_status_values() throws IOException {
+    public void test_ok_with_status_values() throws IOException, StartupException {
         Mockito.when(requestSender.sendStatusRequest(Mockito.anyString(), Mockito.anyInt(), Mockito.anyInt())).thenReturn(new ServiceResponse(200, response));
         List statusValues = new ArrayList<>();
         String value1 = "ServiceStatus\"Started\"";
@@ -119,7 +120,7 @@ public class CheckServiceStatusTest {
     }
 
     @Test
-    public void test_ok_fail_with_status_values() throws IOException {
+    public void test_ok_fail_with_status_values() throws IOException, StartupException {
         Mockito.when(requestSender.sendStatusRequest(Mockito.anyString(), Mockito.anyInt(), Mockito.anyInt())).thenReturn(new ServiceResponse(200, response));
         List statusValues = new ArrayList<>();
         String value1 = "ServiceStatus\"Started\"";
@@ -139,7 +140,7 @@ public class CheckServiceStatusTest {
     }
 
     @Test
-    public void test_fail() throws IOException{
+    public void test_fail() throws IOException, StartupException {
         Mockito.when(requestSender.sendStatusRequest(Mockito.anyString(), Mockito.anyInt(), Mockito.anyInt())).thenReturn(new ServiceResponse(503, response));
         Mockito.when(servicesConfig.getStatusValues(SERVICE_1)).thenReturn(new ArrayList<>());
 
@@ -153,7 +154,7 @@ public class CheckServiceStatusTest {
     }
 
     @Test
-    public void test_fail_fail_with_status_values() throws IOException{
+    public void test_fail_fail_with_status_values() throws IOException, StartupException {
         Mockito.when(requestSender.sendStatusRequest(Mockito.anyString(), Mockito.anyInt(), Mockito.anyInt())).thenReturn(new ServiceResponse(503, response));
         Mockito.when(servicesConfig.getStatusValues(SERVICE_1)).thenReturn(new ArrayList<>());
         List statusValues = new ArrayList<>();
@@ -174,7 +175,7 @@ public class CheckServiceStatusTest {
     }
 
     @Test
-    public void test_fail_exception() throws IOException{
+    public void test_fail_exception() throws IOException, StartupException {
         Mockito.when(requestSender.sendStatusRequest(Mockito.anyString(), Mockito.anyInt(), Mockito.anyInt())).thenThrow(new IOException("Exception"));
         Mockito.when(servicesConfig.getStatusValues(SERVICE_1)).thenReturn(new ArrayList<>());
         List statusValues = new ArrayList<>();

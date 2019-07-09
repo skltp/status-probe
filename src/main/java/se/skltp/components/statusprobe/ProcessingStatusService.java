@@ -11,6 +11,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import se.skltp.components.statusprobe.config.ServicesConfig;
+import se.skltp.components.statusprobe.config.StartupException;
 
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
@@ -46,7 +47,7 @@ public class ProcessingStatusService {
 
 
     @GetMapping(value = "/probe")
-    void getStatus(HttpServletResponse response, @RequestParam(name = "verbose", required = false) boolean verbose) {
+    void getStatus(HttpServletResponse response, @RequestParam(name = "verbose", required = false) boolean verbose) throws IOException {
         log.debug("getStatus() called on all resources behind probe using verbose={}", verbose);
         try {
             probeStatus.updateStatus();
@@ -55,19 +56,19 @@ public class ProcessingStatusService {
                 ServiceStatus statusProbeOwnStatus = fillProbeStatus(new ServiceStatus());
 
                 if (!probeStatus.isProbeAvailable()) {
-                    generateResponse(response, HttpServletResponse.SC_SERVICE_UNAVAILABLE, responseConverter.convert(statusProbeOwnStatus));
+                    generateResponse(response, HttpServletResponse.SC_SERVICE_UNAVAILABLE, statusProbeOwnStatus);
                 } else {
                     if (!verbose) {
                         generateResponse(response, HttpServletResponse.SC_OK, defaultOkReturnString);
                     } else {
-                        generateResponse(response, HttpServletResponse.SC_OK, responseConverter.convert(statusProbeOwnStatus));
+                        generateResponse(response, HttpServletResponse.SC_OK, statusProbeOwnStatus);
                     }
                 }
             } else {
                 List<ServiceStatus> services = getServicesToProcess();
 
                 if (!probeStatus.isProbeAvailable()) {
-                    generateResponse(response, HttpServletResponse.SC_SERVICE_UNAVAILABLE, responseConverter.convert(services));
+                    generateResponse(response, HttpServletResponse.SC_SERVICE_UNAVAILABLE, services);
                 } else {
                     for (ServiceStatus status : services) {
                         checkServiceStatus(status);
@@ -75,26 +76,26 @@ public class ProcessingStatusService {
 
                     for (ServiceStatus status : services) {
                         if (!status.isServiceAvailable()) {
-                            generateResponse(response, HttpServletResponse.SC_SERVICE_UNAVAILABLE, responseConverter.convert(services));
+                            generateResponse(response, HttpServletResponse.SC_SERVICE_UNAVAILABLE, services);
                             return;
                         }
                     }
                     if (!verbose) {
                         generateResponse(response, HttpServletResponse.SC_OK, defaultOkReturnString);
                     } else {
-                        generateResponse(response, HttpServletResponse.SC_OK, responseConverter.convert(services));
+                        generateResponse(response, HttpServletResponse.SC_OK, services);
                     }
                 }
             }
-        } catch (IOException e) {
-            response.setStatus(HttpServletResponse.SC_SERVICE_UNAVAILABLE);
+        } catch (IOException | StartupException e) {
             log.error(e.getMessage());
+            generateResponse(response, HttpServletResponse.SC_SERVICE_UNAVAILABLE, e.getMessage());
         }
     }
 
 
     @GetMapping("/probe/{service}")
-    public void getStatusByName(@PathVariable String service, HttpServletResponse response, @RequestParam(name = "verbose", required = false) boolean verbose) {
+    public void getStatusByName(@PathVariable String service, HttpServletResponse response, @RequestParam(name = "verbose", required = false) boolean verbose) throws IOException {
         log.debug("getStatus() called on resource name={} using verbose={}", service, verbose);
 
         try {
@@ -105,39 +106,48 @@ public class ProcessingStatusService {
 
             if (!servicesConfig.serviceExists(service)) {
                 log.error("Requested resource with name: {}, was not found in list of resources in property file", service);
-                generateResponse(response, HttpServletResponse.SC_NOT_FOUND, responseConverter.convert(serviceStatus));
+                generateResponse(response, HttpServletResponse.SC_NOT_FOUND, serviceStatus);
                 return;
             }
 
             if (!probeStatus.isProbeAvailable()) {
-                generateResponse(response, HttpServletResponse.SC_SERVICE_UNAVAILABLE, responseConverter.convert(serviceStatus));
+                generateResponse(response, HttpServletResponse.SC_SERVICE_UNAVAILABLE, serviceStatus);
                 return;
             }
 
             checkServiceStatus(serviceStatus);
 
             if (!serviceStatus.isServiceAvailable()) {
-                generateResponse(response, HttpServletResponse.SC_SERVICE_UNAVAILABLE, responseConverter.convert(serviceStatus));
+                generateResponse(response, HttpServletResponse.SC_SERVICE_UNAVAILABLE, serviceStatus);
             } else {
                 if (!verbose) {
                     generateResponse(response, HttpServletResponse.SC_OK, defaultOkReturnString);
                 } else {
-                    generateResponse(response, HttpServletResponse.SC_OK, responseConverter.convert(serviceStatus));
+                    generateResponse(response, HttpServletResponse.SC_OK, serviceStatus);
                 }
             }
-        } catch (IOException e) {
-            response.setStatus(HttpServletResponse.SC_SERVICE_UNAVAILABLE);
+        } catch (IOException | StartupException e) {
             log.error(e.getMessage());
+            generateResponse(response, HttpServletResponse.SC_SERVICE_UNAVAILABLE, e.getMessage());
         }
     }
 
     private void generateResponse(HttpServletResponse response, int status, String message) throws IOException {
         response.setStatus(status);
         response.getWriter().println(message);
+    }
+
+    private void generateResponse(HttpServletResponse response, int status, ServiceStatus serviceStatus) throws IOException {
+        generateResponse(response, status,responseConverter.convert(serviceStatus));
         response.setContentType("application/json");
     }
 
-    private List<ServiceStatus> getServicesToProcess() {
+    private void generateResponse(HttpServletResponse response, int status, List<ServiceStatus> serviceStatusList) throws IOException {
+        generateResponse(response, status,responseConverter.convert(serviceStatusList));
+        response.setContentType("application/json");
+    }
+
+    private List<ServiceStatus> getServicesToProcess() throws StartupException {
         List<ServiceStatus> serviceStatuses = new ArrayList<>();
         for (String service : servicesConfig.getServices()) {
             ServiceStatus serviceStatus = fillProbeStatus(new ServiceStatus());
@@ -153,7 +163,7 @@ public class ProcessingStatusService {
         return serviceStatus;
     }
 
-    private void fillServiceConfiguration(String name, ServiceStatus serviceStatus) {
+    private void fillServiceConfiguration(String name, ServiceStatus serviceStatus) throws StartupException {
         serviceStatus.setName(name);
         serviceStatus.setConnecttimeout(Integer.toString(servicesConfig.getConnectTimeout(name)));
         serviceStatus.setResponsetimeout(Integer.toString(servicesConfig.getSocketTimeout(name)));
