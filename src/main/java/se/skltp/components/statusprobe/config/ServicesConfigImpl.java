@@ -3,10 +3,8 @@ package se.skltp.components.statusprobe.config;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Configuration;
-import se.skltp.components.statusprobe.ProbeOwnStatus;
 import se.skltp.components.statusprobe.Service;
 
 import java.io.File;
@@ -48,35 +46,34 @@ public class ServicesConfigImpl implements ServicesConfig {
     }
 
     public Set<String> getServices() throws StartupException {
-        if(services.isEmpty()) throw new StartupException("SatusProbe fail during start.");
-
+        if (services.isEmpty()) throw new StartupException("SatusProbe fail during start.");
         return services.keySet();
     }
 
     public boolean serviceExists(String name) throws StartupException {
-        if(services.isEmpty()) throw new StartupException("SatusProbe fail during start.");
+        if (services.isEmpty()) throw new StartupException("SatusProbe fail during start.");
         return services.containsKey(name);
     }
 
-    public int getConnectTimeout(String name) throws StartupException{
+    public int getConnectTimeout(String name) throws StartupException {
         if (serviceExists(name))
             return services.get(name).getConnectTimeout();
         else return 0;
     }
 
-    public int getSocketTimeout(String name) throws StartupException{
+    public int getSocketTimeout(String name) throws StartupException {
         if (serviceExists(name))
             return services.get(name).getSocketTimeout();
         else return 0;
     }
 
-    public String getUrl(String name) throws StartupException{
+    public String getUrl(String name) throws StartupException {
         if (serviceExists(name))
             return services.get(name).getUrl();
         else return null;
     }
 
-    public List<String> getStatusValues(String name) throws StartupException{
+    public List<String> getStatusValues(String name) throws StartupException {
         if (serviceExists(name))
             return services.get(name).getStatusValues();
         else return new ArrayList<>();

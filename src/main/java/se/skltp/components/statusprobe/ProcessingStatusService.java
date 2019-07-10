@@ -193,6 +193,7 @@ public class ProcessingStatusService {
             } else {
                 serviceToProcess.setServiceAvailable(false);
                 serviceToProcess.setServiceMessage("Missing values: " + Arrays.toString(missing.toArray()) + " In server response: " + response.getMessage());
+                log.info("Missing values: {}, in response: {}", Arrays.toString(missing.toArray()), response.getMessage());
             }
         } catch (Exception e) {
             log.error("Exception: " + e.getMessage() + " occured. Resource: " + serviceToProcess.getName() + ", URL " + serviceToProcess.getUrl());

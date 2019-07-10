@@ -1,0 +1,41 @@
+<Configuration status="WARN" monitorInterval="30">
+  <Properties>
+    <Property name="LOG_PATTERN">
+      %d %-5p [%t] %-30c - %m%n
+    </Property>
+    <Property name="log.dir">
+      /var/log/statusProbe
+    </Property>
+  </Properties>
+
+  <Appenders>
+    <Console name="Console" target="SYSTEM_OUT">
+      <PatternLayout pattern="${LOG_PATTERN}"/>
+    </Console>
+
+    <RollingRandomAccessFile name="RollingRandomAccessFile"
+                             fileName="${log.dir}/statusProbe.log"
+                             filePattern="${log.dir}/statusProbe.log.%i">
+      <PatternLayout>
+        <Pattern>%d %-5p [%t] %-30c - %m%n</Pattern>
+      </PatternLayout>
+      <Policies>
+        <!-- KB, MB -->
+        <SizeBasedTriggeringPolicy size="50 MB"/>
+      </Policies>
+      <DefaultRolloverStrategy fileIndex="min" max="10"/>
+    </RollingRandomAccessFile>
+
+  </Appenders>
+
+  <Loggers>
+    <!-- Application logging -->
+    <AsyncLogger name="se.skltp.components.statusprobe" level="INFO"/>
+
+
+    <Root level="WARN">
+      <AppenderRef ref="RollingRandomAccessFile"/>
+    </Root>
+
+  </Loggers>
+</Configuration>
