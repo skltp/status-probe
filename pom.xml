@@ -15,12 +15,13 @@
 	<properties>
 		<java.version>1.8</java.version>
 		<spring.boot-version>2.1.0.RELEASE</spring.boot-version>
+		<log4j2.version>2.17.0</log4j2.version>
 	</properties>
 
 	<scm>
-		<url>https://github.com/skltp-incubator/status-probe.git</url>
-		<connection>scm:git:https://github.com:443/skltp-incubator/status-probe.git</connection>
-		<developerConnection>scm:git:https://github.com:443/skltp-incubator/status-probe.git
+		<url>https://github.com/skltp/status-probe.git</url>
+		<connection>scm:git:https://github.com:443/skltp/status-probe.git</connection>
+		<developerConnection>scm:git:https://github.com:443/skltp/status-probe.git
 		</developerConnection>
 		<tag>HEAD</tag>
 	</scm>
