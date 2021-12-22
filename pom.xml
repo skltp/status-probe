@@ -19,9 +19,9 @@
 	</properties>
 
 	<scm>
-		<url>https://github.com/skltp-incubator/status-probe.git</url>
-		<connection>scm:git:https://github.com:443/skltp-incubator/status-probe.git</connection>
-		<developerConnection>scm:git:https://github.com:443/skltp-incubator/status-probe.git
+		<url>https://github.com/skltp/status-probe.git</url>
+		<connection>scm:git:https://github.com:443/skltp/status-probe.git</connection>
+		<developerConnection>scm:git:https://github.com:443/skltp/status-probe.git
 		</developerConnection>
 		<tag>HEAD</tag>
 	</scm>
