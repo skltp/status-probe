@@ -16,6 +16,9 @@
 		<java.version>11</java.version>
 		<spring.boot-version>2.6.6</spring.boot-version>
 		<log4j2.version>2.17.1</log4j2.version>
+		<jacoco.plugin.version>0.8.5</jacoco.plugin.version>
+		<surefire.plugin.version>2.22.2</surefire.plugin.version>
+		<failsafe.plugin.version>2.22.2</failsafe.plugin.version>
 	</properties>
 
 	<scm>
@@ -108,4 +111,37 @@
 			</plugin>
 		</plugins>
 	</build>
+
+	<profiles>
+		<profile>
+			<id>test-coverage</id>
+			<build>
+				<plugins>
+					<plugin>
+						<groupId>org.apache.maven.plugins</groupId>
+						<artifactId>maven-surefire-plugin</artifactId>
+					</plugin>
+					<plugin>
+						<groupId>org.jacoco</groupId>
+						<artifactId>jacoco-maven-plugin</artifactId>
+						<version>${jacoco.plugin.version}</version>
+						<executions>
+							<execution>
+								<id>default-prepare-agent</id>
+								<goals>
+									<goal>prepare-agent</goal>
+								</goals>
+							</execution>
+							<execution>
+								<id>default-report</id>
+								<goals>
+									<goal>report</goal>
+								</goals>
+							</execution>
+						</executions>
+					</plugin>
+				</plugins>
+			</build>
+		</profile>
+	</profiles>
 </project>
