@@ -1,0 +1,3 @@
+sonar-projectkey: 'ntjp-statusprobe'                # The project key for the project.
+sonar-java-binaries: 'target/classes/**/*'          # What binaries to scan.
+sonar-jacoco-reports: './target/site/jacoco.xml'    # Where the jacoco coverage report is stored.
